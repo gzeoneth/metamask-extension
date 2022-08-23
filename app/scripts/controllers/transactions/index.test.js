@@ -467,7 +467,7 @@ describe('Transaction Controller', function () {
     });
   });
 
-  describe.only('#createCancelTransaction', function () {
+  describe('#createCancelTransaction', function () {
     const selectedAddress = '0x1678a085c290ebd122dc42cba69373b5953b831d';
     const recipientAddress = '0xc42edfcc21ed14dda456aa0756c153f7985d8813';
 
