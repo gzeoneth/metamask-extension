@@ -467,15 +467,28 @@ describe('Transaction Controller', function () {
     });
   });
 
-  describe('#createCancelTransaction', function () {
+  describe.only('#createCancelTransaction', function () {
     const selectedAddress = '0x1678a085c290ebd122dc42cba69373b5953b831d';
     const recipientAddress = '0xc42edfcc21ed14dda456aa0756c153f7985d8813';
 
-    let getSelectedAddress, getPermittedAccounts;
+    let getSelectedAddress,
+      getPermittedAccounts,
+      getDefaultGasFees,
+      getDefaultGasLimit;
     beforeEach(function () {
+      const hash =
+        '0x2a5523c6fa98b47b7d9b6c8320179785150b42a16bcff36b398c5062b65657e8';
+      providerResultStub.eth_sendRawTransaction = hash;
+
       getSelectedAddress = sinon
         .stub(txController, 'getSelectedAddress')
         .returns(selectedAddress);
+      getDefaultGasFees = sinon
+        .stub(txController, '_getDefaultGasFees')
+        .returns({});
+      getDefaultGasLimit = sinon
+        .stub(txController, '_getDefaultGasLimit')
+        .returns({});
       getPermittedAccounts = sinon
         .stub(txController, 'getPermittedAccounts')
         .returns([selectedAddress]);
@@ -484,6 +497,8 @@ describe('Transaction Controller', function () {
     afterEach(function () {
       getSelectedAddress.restore();
       getPermittedAccounts.restore();
+      getDefaultGasFees.restore();
+      getDefaultGasLimit.restore();
     });
 
     it('should add an cancel transaction and return a valid txMeta', async function () {
@@ -491,14 +506,14 @@ describe('Transaction Controller', function () {
         from: selectedAddress,
         to: recipientAddress,
       });
+      await txController.approveTransaction(txMeta.id);
       const cancelTxMeta = await txController.createCancelTransaction(
         txMeta.id,
-        undefined,
+        {},
         undefined,
         12345,
       );
-      // console.log(JSON.stringify(cancelTxMeta));
-      // assert.equal(cancelTxMeta.type, TRANSACTION_TYPES.CANCEL);
+      assert.equal(cancelTxMeta.type, TRANSACTION_TYPES.CANCEL);
       const memTxMeta = txController.txStateManager.getTransaction(
         cancelTxMeta.id,
       );
@@ -510,9 +525,10 @@ describe('Transaction Controller', function () {
         from: selectedAddress,
         to: recipientAddress,
       });
+      await txController.approveTransaction(txMeta.id);
       await txController.createCancelTransaction(
         txMeta.id,
-        undefined,
+        {},
         undefined,
         12345,
       );
@@ -520,7 +536,7 @@ describe('Transaction Controller', function () {
         txController.txStateManager.getTransactions().length;
       await txController.createCancelTransaction(
         txMeta.id,
-        undefined,
+        {},
         undefined,
         12345,
       );
@@ -529,29 +545,30 @@ describe('Transaction Controller', function () {
       assert.equal(transactionCount1, transactionCount2);
     });
 
-    // it('should add multiple transactions when called with different actionId', async function () {
-    //   const txMeta = await txController.addUnapprovedTransaction({
-    //     from: selectedAddress,
-    //     to: recipientAddress,
-    //   });
-    //   await txController.createCancelTransaction(
-    //     txMeta.id,
-    //     undefined,
-    //     undefined,
-    //     12345,
-    //   );
-    //   const transactionCount1 =
-    //     txController.txStateManager.getTransactions().length;
-    //   await txController.createCancelTransaction(
-    //     txMeta.id,
-    //     undefined,
-    //     undefined,
-    //     1111,
-    //   );
-    //   const transactionCount2 =
-    //     txController.txStateManager.getTransactions().length;
-    //   assert.equal(transactionCount1 + 1, transactionCount2);
-    // });
+    it('should add multiple transactions when called with different actionId', async function () {
+      const txMeta = await txController.addUnapprovedTransaction({
+        from: selectedAddress,
+        to: recipientAddress,
+      });
+      await txController.approveTransaction(txMeta.id);
+      await txController.createCancelTransaction(
+        txMeta.id,
+        {},
+        undefined,
+        12345,
+      );
+      const transactionCount1 =
+        txController.txStateManager.getTransactions().length;
+      await txController.createCancelTransaction(
+        txMeta.id,
+        {},
+        undefined,
+        1111,
+      );
+      const transactionCount2 =
+        txController.txStateManager.getTransactions().length;
+      assert.equal(transactionCount1 + 1, transactionCount2);
+    });
   });
 
   describe('#addTxGasDefaults', function () {
