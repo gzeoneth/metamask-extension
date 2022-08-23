@@ -1149,13 +1149,28 @@ export default class TransactionController extends EventEmitter {
    *  params instead of allowing this method to generate them
    * @param options
    * @param options.estimatedBaseFee
+   * @param actionId
    * @returns {txMeta}
    */
   async createCancelTransaction(
     originalTxId,
     customGasSettings,
     { estimatedBaseFee } = {},
+    actionId,
   ) {
+    // In transaction is found for same action id, do not create a new cancel transaction.
+    if (actionId) {
+      const existingTxMeta =
+        this.txStateManager.getTransactionWithActionId(actionId);
+      if (existingTxMeta) {
+        // Method approveTransaction is confusing, but it actually approves and also submits / publishes the transaction
+        if (existingTxMeta.status === TRANSACTION_STATUSES.APPROVED) {
+          await this.approveTransaction(existingTxMeta.id);
+        }
+        return existingTxMeta;
+      }
+    }
+
     const originalTxMeta = this.txStateManager.getTransaction(originalTxId);
     const { txParams } = originalTxMeta;
     const { from, nonce } = txParams;
@@ -1183,7 +1198,9 @@ export default class TransactionController extends EventEmitter {
       loadingDefaults: false,
       status: TRANSACTION_STATUSES.APPROVED,
       type: TRANSACTION_TYPES.CANCEL,
+      actionId,
     });
+    console.log('newTxMeta = ', newTxMeta);
 
     if (estimatedBaseFee) {
       newTxMeta.estimatedBaseFee = estimatedBaseFee;

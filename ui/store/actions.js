@@ -1978,10 +1978,11 @@ export function createCancelTransaction(
   let newTxId;
 
   return (dispatch) => {
+    const actionId = Date.now() + Math.random();
     return new Promise((resolve, reject) => {
       callBackgroundMethod(
         'createCancelTransaction',
-        [txId, customGasSettings, newTxMetaProps],
+        [txId, customGasSettings, newTxMetaProps, actionId],
         (err, newState) => {
           if (err) {
             dispatch(displayWarning(err.message));
@@ -1994,6 +1995,7 @@ export function createCancelTransaction(
           newTxId = id;
           resolve(newState);
         },
+        actionId,
       );
     })
       .then((newState) => dispatch(updateMetamaskState(newState)))
