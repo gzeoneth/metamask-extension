@@ -21,7 +21,7 @@ function Jazzicon({
     const imageNode = iconFactory.iconForAddress(
       address,
       diameter,
-      tokenList[address.toLowerCase()],
+      tokenList[address?.toLowerCase()],
     );
 
     return imageNode.outerHTML;
