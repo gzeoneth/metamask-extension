@@ -1219,13 +1219,24 @@ export default class TransactionController extends EventEmitter {
    *  params instead of allowing this method to generate them
    * @param options
    * @param options.estimatedBaseFee
+   * @param actionId
    * @returns {txMeta}
    */
   async createSpeedUpTransaction(
     originalTxId,
     customGasSettings,
     { estimatedBaseFee } = {},
+    actionId,
   ) {
+    // In transaction is found for same action id, do not create a new cancel transaction.
+    if (actionId) {
+      const existingTxMeta =
+        this.txStateManager.getTransactionWithActionId(actionId);
+      if (existingTxMeta) {
+        return existingTxMeta;
+      }
+    }
+
     const originalTxMeta = this.txStateManager.getTransaction(originalTxId);
     const { txParams } = originalTxMeta;
 
@@ -1244,6 +1255,7 @@ export default class TransactionController extends EventEmitter {
       status: TRANSACTION_STATUSES.APPROVED,
       type: TRANSACTION_TYPES.RETRY,
       originalType: originalTxMeta.type,
+      actionId,
     });
 
     if (estimatedBaseFee) {
