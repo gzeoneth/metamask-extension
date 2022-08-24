@@ -1175,6 +1175,8 @@ describe('Transaction Controller', function () {
     let approveTransactionSpy;
     let txParams;
     let expectedTxParams;
+    const selectedAddress = '0x1678a085c290ebd122dc42cba69373b5953b831d';
+    const recipientAddress = '0xc42edfcc21ed14dda456aa0756c153f7985d8813';
 
     beforeEach(function () {
       addTransactionSpy = sinon.spy(txController, 'addTransaction');
