@@ -1165,10 +1165,6 @@ export default class TransactionController extends EventEmitter {
       const existingTxMeta =
         this.txStateManager.getTransactionWithActionId(actionId);
       if (existingTxMeta) {
-        // Method approveTransaction is confusing, but it actually approves and also submits / publishes the transaction
-        if (existingTxMeta.status === TRANSACTION_STATUSES.APPROVED) {
-          await this.approveTransaction(existingTxMeta.id);
-        }
         return existingTxMeta;
       }
     }
@@ -1799,10 +1795,9 @@ export default class TransactionController extends EventEmitter {
         },
       })
       .forEach((txMeta) => {
-        const txSignError = new Error(
-          'Transaction found as "approved" during boot - possibly stuck during signing',
-        );
-        this._failTransaction(txMeta.id, txSignError);
+        // Line below will try to publish transaction which is in
+        // APPROVED state at the time of controller bootup
+        this.approveTransaction(txMeta);
       });
   }
 
