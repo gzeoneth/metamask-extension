@@ -1,4 +1,156 @@
 import { capitalize } from 'lodash';
+/**
+ * A type representing any valid value for 'type' for setProviderType and other
+ * methods that add or manipulate networks in MetaMask state.
+ */
+export type NetworkType = typeof NETWORK_TYPES[keyof typeof NETWORK_TYPES];
+
+/**
+ * A union type of all possible hard-coded chain ids. This type is not
+ * exhaustive and cannot be used for typing chainId in areas where the user or
+ * dapp may specify any chainId.
+ */
+export type ChainId = typeof CHAIN_IDS[keyof typeof CHAIN_IDS];
+
+/**
+ * A type that is a union type of all possible hardcoded currency symbols.
+ * This type is non-exhaustive, and cannot be used for areas where the user
+ * or dapp may supply their own symbol.
+ */
+type CurrencySymbol = typeof CURRENCY_SYMBOLS[keyof typeof CURRENCY_SYMBOLS];
+/**
+ * For certain specific situations we need the above type, but with all symbols
+ * in lowercase format.
+ */
+type LowercaseCurrencySymbol = Lowercase<CurrencySymbol>;
+/**
+ * Test networks have special symbols that combine the network name and 'ETH'
+ * so that they are distinct from mainnet and other networks that use 'ETH'.
+ */
+export type TestNetworkCurrencySymbol =
+  typeof TEST_NETWORK_TICKER_MAP[keyof typeof TEST_NETWORK_TICKER_MAP];
+
+/**
+ * MoonPay is a fiat onramp provider, and there are some special strings that
+ * inform the MoonPay API which network the user is attempting to onramp into.
+ * This type reflects those possible values.
+ */
+type MoonPayNetworkAbbreviation = 'bsc' | 'cchain' | 'polygon';
+
+/**
+ * MoonPay requires some settings that are configured per network that it is
+ * enabled on. This type describes those settings.
+ */
+type MoonPayChainSettings = {
+  /**
+   * What should the default onramp currency be, for example 'eth' on 'mainnet'
+   * This type matches a single LowercaseCurrencySymbol or a
+   * LowercaseCurrencySymbol and a MoonPayNetworkAbbreviation joined by a '_'.
+   */
+  defaultCurrencyCode:
+    | LowercaseCurrencySymbol
+    | `${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviation}`;
+  /**
+   * We must also configure all possible onramp currencies we wish to support.
+   * This type matches 1 to 3 LowercaseCurrencySymbols, joined by ','. It also
+   * matches 1 or 2 LowercaseCurrencySymbols with a
+   * MoonPayNetworkAbbreviation joined by a '_', and concatenated with ','.
+   */
+  showOnlyCurrencies:
+    | `${LowercaseCurrencySymbol}`
+    | `${LowercaseCurrencySymbol},${LowercaseCurrencySymbol}`
+    | `${LowercaseCurrencySymbol},${LowercaseCurrencySymbol},${LowercaseCurrencySymbol}`
+    | `${LowercaseCurrencySymbol},${LowercaseCurrencySymbol},${LowercaseCurrencySymbol},${LowercaseCurrencySymbol}`
+    | `${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviation}`
+    | `${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviation},${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviation}`;
+};
+
+/**
+ * An object containing preferences for an RPC definition
+ */
+type RPCPreferences = {
+  /**
+   * A URL for the block explorer for the RPC's network
+   */
+  blockExplorerUrl: `https://${string}`;
+  /**
+   * A image reflecting the asset symbol for the network
+   */
+  imageUrl: string;
+};
+
+/**
+ * An object that describes a network to be used inside of MetaMask
+ */
+type RPCDefinition = {
+  /**
+   * The hex encoded ChainId for the network
+   */
+  chainId: ChainId;
+  /**
+   * The nickname for the network
+   */
+  nickname: string;
+  /**
+   * The URL for the client to send network requests to
+   */
+  rpcUrl: `https://${string}`;
+  /**
+   * The Currency Symbol for the network
+   */
+  ticker: string;
+  /**
+   * Additional preferences for the network, such as blockExplorerUrl
+   */
+  rpcPrefs: RPCPreferences;
+};
+
+/**
+ * Wyre is a fiat onramp provider. We must provide some settings for networks
+ * that support Wyre.
+ */
+type WyreChainSettings = {
+  /**
+   * The network name
+   */
+  srn: string;
+  /**
+   * The native currency for the network
+   */
+  currencyCode: CurrencySymbol;
+};
+
+/**
+ * For each chain that we support fiat onramps for, we provide a set of
+ * configuration options that help for initializing the connectiong to the
+ * onramp providers.
+ */
+type BuyableChainSettings = {
+  /**
+   * The native currency for the given chain
+   */
+  nativeCurrency: CurrencySymbol | TestNetworkCurrencySymbol;
+  /**
+   * The network name or identifier
+   */
+  network: string;
+  /**
+   * The list of supported currencies for the Transak onramp provider
+   */
+  transakCurrencies?: CurrencySymbol[];
+  /**
+   * A configuration object for the MoonPay onramp provider
+   */
+  moonPay?: MoonPayChainSettings;
+  /**
+   * A configuration object for the Wyre onramp provider
+   */
+  wyre?: WyreChainSettings;
+  /**
+   * The list of supported currencies for the CoinbasePay onramp provider
+   */
+  coinbasePayCurrencies?: CurrencySymbol[];
+};
 
 /**
  * Throughout the extension we set the current provider by referencing its
@@ -25,12 +177,6 @@ export const NETWORK_TYPES = {
 export const NETWORK_NAMES = {
   HOMESTEAD: 'homestead',
 };
-
-/**
- * A type representing any valid value for 'type' for setProviderType and other
- * methods that add or manipulate networks in MetaMask state.
- */
-export type NetworkTypes = typeof NETWORK_TYPES[keyof typeof NETWORK_TYPES];
 
 /**
  * The Network ID for our builtin networks. This is the decimal equivalent of
@@ -74,13 +220,6 @@ export const CHAIN_IDS = {
 } as const;
 
 /**
- * A union type of all possible hard-coded chain ids. This type is not
- * exhaustive and cannot be used for typing chainId in areas where the user or
- * dapp may specify any chainId.
- */
-export type ChainIds = typeof CHAIN_IDS[keyof typeof CHAIN_IDS];
-
-/**
  * The largest possible chain ID we can handle.
  * Explanation: https://gist.github.com/rekmarks/a47bd5f2525936c4b8eee31a16345553
  */
@@ -108,7 +247,7 @@ export const getRpcUrl = ({
   network,
   excludeProjectId = false,
 }: {
-  network: NetworkTypes;
+  network: NetworkType;
   excludeProjectId?: boolean;
 }) =>
   `https://${network}.infura.io/v3/${excludeProjectId ? '' : infuraProjectId}`;
@@ -149,18 +288,6 @@ export const CURRENCY_SYMBOLS = {
   WETH: 'WETH',
 } as const;
 
-/**
- * A type that is a union type of all possible hardcoded currency symbols.
- * This type is non-exhaustive, and cannot be used for areas where the user
- * or dapp may supply their own symbol.
- */
-type CurrencySymbol = typeof CURRENCY_SYMBOLS[keyof typeof CURRENCY_SYMBOLS];
-/**
- * For certain specific situations we need the above type, but with all symbols
- * in lowercase format.
- */
-type LowercaseCurrencySymbol = Lowercase<CurrencySymbol>;
-
 export const ETH_TOKEN_IMAGE_URL = './images/eth_logo.svg';
 export const TEST_ETH_TOKEN_IMAGE_URL = './images/black-eth-logo.svg';
 export const BNB_TOKEN_IMAGE_URL = './images/bnb.png';
@@ -188,27 +315,28 @@ export const TEST_CHAINS = [
   CHAIN_IDS.LOCALHOST,
 ];
 
-export const TEST_NETWORK_TICKER_MAP = {
-  [NETWORK_TYPES.ROPSTEN]: `${
-    capitalize(NETWORK_TYPES.ROPSTEN) as Capitalize<
-      typeof NETWORK_TYPES.ROPSTEN
-    >
-  }${CURRENCY_SYMBOLS.ETH}`,
-  [NETWORK_TYPES.RINKEBY]: `${
-    capitalize(NETWORK_TYPES.RINKEBY) as Capitalize<
-      typeof NETWORK_TYPES.RINKEBY
-    >
-  }${CURRENCY_SYMBOLS.ETH}`,
-  [NETWORK_TYPES.KOVAN]: `${
-    capitalize(NETWORK_TYPES.KOVAN) as Capitalize<typeof NETWORK_TYPES.KOVAN>
-  }${CURRENCY_SYMBOLS.ETH}`,
-  [NETWORK_TYPES.GOERLI]: `${
-    capitalize(NETWORK_TYPES.GOERLI) as Capitalize<typeof NETWORK_TYPES.GOERLI>
-  }${CURRENCY_SYMBOLS.ETH}`,
-} as const;
+const typedCapitalize = <K extends string>(k: K): Capitalize<K> =>
+  capitalize(k) as Capitalize<typeof k>;
 
-export type TestNetworkCurrencySymbols =
-  typeof TEST_NETWORK_TICKER_MAP[keyof typeof TEST_NETWORK_TICKER_MAP];
+export const TEST_NETWORK_TICKER_MAP: {
+  [K in Exclude<
+    NetworkType,
+    'localhost' | 'mainnet' | 'rpc'
+  >]: `${Capitalize<K>}${typeof CURRENCY_SYMBOLS.ETH}`;
+} = {
+  [NETWORK_TYPES.ROPSTEN]: `${typedCapitalize(NETWORK_TYPES.ROPSTEN)}${
+    CURRENCY_SYMBOLS.ETH
+  }`,
+  [NETWORK_TYPES.RINKEBY]: `${typedCapitalize(NETWORK_TYPES.RINKEBY)}${
+    CURRENCY_SYMBOLS.ETH
+  }`,
+  [NETWORK_TYPES.KOVAN]: `${typedCapitalize(NETWORK_TYPES.KOVAN)}${
+    CURRENCY_SYMBOLS.ETH
+  }`,
+  [NETWORK_TYPES.GOERLI]: `${typedCapitalize(NETWORK_TYPES.GOERLI)}${
+    CURRENCY_SYMBOLS.ETH
+  }`,
+} as const;
 
 /**
  * Map of all build-in Infura networks to their network, ticker and chain IDs.
@@ -365,36 +493,17 @@ export const IPFS_DEFAULT_GATEWAY_URL = 'dweb.link';
 // default crypto currency for the network
 const BUYABLE_CHAIN_ETHEREUM_NETWORK_NAME = 'ethereum';
 
-type MoonPayNetworkAbbreviations = 'bsc' | 'cchain' | 'polygon';
-
-type MoonPayChainSettings = {
-  defaultCurrencyCode:
-    | LowercaseCurrencySymbol
-    | `${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviations}`;
-  showOnlyCurrencies:
-    | `${LowercaseCurrencySymbol}`
-    | `${LowercaseCurrencySymbol},${LowercaseCurrencySymbol}`
-    | `${LowercaseCurrencySymbol},${LowercaseCurrencySymbol},${LowercaseCurrencySymbol}`
-    | `${LowercaseCurrencySymbol},${LowercaseCurrencySymbol},${LowercaseCurrencySymbol},${LowercaseCurrencySymbol}`
-    | `${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviations}`
-    | `${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviations},${LowercaseCurrencySymbol}_${MoonPayNetworkAbbreviations}`;
-};
-
-type WyreChainSettings = {
-  srn: string;
-  currencyCode: CurrencySymbol;
-};
-
-type BuyableChainSettings = {
-  nativeCurrency: CurrencySymbol | TestNetworkCurrencySymbols;
-  network: string;
-  transakCurrencies?: CurrencySymbol[];
-  moonPay?: MoonPayChainSettings;
-  wyre?: WyreChainSettings;
-  coinbasePayCurrencies?: CurrencySymbol[];
-};
-
-export const BUYABLE_CHAINS_MAP: { [K in ChainIds]?: BuyableChainSettings } = {
+export const BUYABLE_CHAINS_MAP: {
+  [K in Exclude<
+    ChainId,
+    | typeof CHAIN_IDS.LOCALHOST
+    | typeof CHAIN_IDS.PALM
+    | typeof CHAIN_IDS.HARMONY
+    | typeof CHAIN_IDS.OPTIMISM
+    | typeof CHAIN_IDS.OPTIMISM_TESTNET
+    | typeof CHAIN_IDS.ARBITRUM
+  >]: BuyableChainSettings;
+} = {
   [CHAIN_IDS.MAINNET]: {
     nativeCurrency: CURRENCY_SYMBOLS.ETH,
     network: BUYABLE_CHAIN_ETHEREUM_NETWORK_NAME,
@@ -480,19 +589,6 @@ export const BUYABLE_CHAINS_MAP: { [K in ChainIds]?: BuyableChainSettings } = {
       showOnlyCurrencies: 'celo',
     },
   },
-};
-
-type RPCPreferences = {
-  blockExplorerUrl: `https://${string}`;
-  imageUrl: string;
-};
-
-type RPCDefinition = {
-  chainId: ChainIds;
-  nickname: string;
-  rpcUrl: `https://${string}`;
-  ticker: string;
-  rpcPrefs: RPCPreferences;
 };
 
 export const FEATURED_RPCS: RPCDefinition[] = [
