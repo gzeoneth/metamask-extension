@@ -47,6 +47,7 @@ const {
 const {
   createRemoveFencedCodeTransform,
 } = require('./transforms/remove-fenced-code');
+const { getURL } = require('ui/helpers/utils/util');
 
 /**
  * Get the appropriate Infura project ID.
@@ -120,11 +121,9 @@ function getPhishingWarningPageUrl({ config, testing }) {
     ? phishingWarningPageUrl
     : `${phishingWarningPageUrl}/`;
 
-  let phishingWarningPageUrlObject;
-  try {
-    // eslint-disable-next-line no-new
-    phishingWarningPageUrlObject = new URL(normalizedUrl);
-  } catch (error) {
+  const phishingWarningPageUrlObject = (phishingWarningPageUrlObject =
+    getURL(normalizedUrl));
+  if (!phishingWarningPageUrlObject) {
     throw new Error(
       `Invalid phishing warning page URL: '${normalizedUrl}'`,
       error,
