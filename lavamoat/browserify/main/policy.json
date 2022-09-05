@@ -5754,6 +5754,8 @@
         "@ethereumjs/common": true,
         "@ethereumjs/common>crc-32": true,
         "@ethereumjs/tx": true,
+        "@ethersproject/abi": true,
+        "@ethersproject/abi>@ethersproject/keccak256>js-sha3": true,
         "bn.js": true,
         "browserify>buffer": true,
         "browserify>process": true,
@@ -5765,11 +5767,9 @@
         "eth-lattice-keyring>gridplus-sdk>rlp": true,
         "eth-lattice-keyring>gridplus-sdk>secp256k1": true,
         "eth-lattice-keyring>gridplus-sdk>superagent": true,
+        "ethereumjs-util>ethereum-cryptography>hash.js": true,
         "ethereumjs-wallet>aes-js": true,
         "ethereumjs-wallet>bs58check": true,
-        "ethers>@ethersproject/abi": true,
-        "ethers>@ethersproject/keccak256>js-sha3": true,
-        "ethers>@ethersproject/sha2>hash.js": true,
         "lodash": true
       }
     },
@@ -5806,9 +5806,9 @@
         "intToBuffer": true
       },
       "packages": {
+        "@ethersproject/abi>@ethersproject/keccak256>js-sha3": true,
         "eth-lattice-keyring>gridplus-sdk>eth-eip712-util-browser>bn.js": true,
-        "eth-lattice-keyring>gridplus-sdk>eth-eip712-util-browser>buffer": true,
-        "ethers>@ethersproject/keccak256>js-sha3": true
+        "eth-lattice-keyring>gridplus-sdk>eth-eip712-util-browser>buffer": true
       }
     },
     "eth-lattice-keyring>gridplus-sdk>eth-eip712-util-browser>bn.js": {
