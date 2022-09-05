@@ -2462,8 +2462,8 @@ export default class TransactionController extends EventEmitter {
    *
    * @param {object} txMeta - the txMeta object
    * @param {TransactionMetaMetricsEventString} event - the name of the transaction event
-   * @param {object} extraParams - optional props and values to include in sensitiveProperties
    * @param {string} actionId - actionId passed from UI
+   * @param {object} extraParams - optional props and values to include in sensitiveProperties
    */
   async _trackTransactionMetricsEvent(
     txMeta,
