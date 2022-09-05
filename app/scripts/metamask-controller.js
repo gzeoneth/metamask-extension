@@ -3266,7 +3266,7 @@ export default class MetamaskController extends EventEmitter {
    *  './controllers/transactions'
    * ).CustomGasSettings} [customGasSettings] - overrides to use for gas params
    *  instead of allowing this method to generate them
-   * @param {string} actionId actionidPassed from UI
+   * @param {string} actionId - actionidPassed from UI
    * @param newTxMetaProps
    * @returns {object} MetaMask state
    */
@@ -3296,7 +3296,7 @@ export default class MetamaskController extends EventEmitter {
    *  './controllers/transactions'
    * ).CustomGasSettings} [customGasSettings] - overrides to use for gas params
    *  instead of allowing this method to generate them
-   * @param {string} actionId actionidPassed from UI
+   * @param {string} actionId - actionidPassed from UI
    * @param newTxMetaProps
    * @returns {object} MetaMask state
    */
