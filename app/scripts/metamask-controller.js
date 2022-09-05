@@ -3266,17 +3266,20 @@ export default class MetamaskController extends EventEmitter {
    *  './controllers/transactions'
    * ).CustomGasSettings} [customGasSettings] - overrides to use for gas params
    *  instead of allowing this method to generate them
+   * @param {string} actionId actionidPassed from UI
    * @param newTxMetaProps
    * @returns {object} MetaMask state
    */
   async createCancelTransaction(
     originalTxId,
     customGasSettings,
+    actionId,
     newTxMetaProps,
   ) {
     await this.txController.createCancelTransaction(
       originalTxId,
       customGasSettings,
+      actionId,
       newTxMetaProps,
     );
     const state = await this.getState();
@@ -3293,17 +3296,20 @@ export default class MetamaskController extends EventEmitter {
    *  './controllers/transactions'
    * ).CustomGasSettings} [customGasSettings] - overrides to use for gas params
    *  instead of allowing this method to generate them
+   * @param {string} actionId actionidPassed from UI
    * @param newTxMetaProps
    * @returns {object} MetaMask state
    */
   async createSpeedUpTransaction(
     originalTxId,
     customGasSettings,
+    actionId,
     newTxMetaProps,
   ) {
     await this.txController.createSpeedUpTransaction(
       originalTxId,
       customGasSettings,
+      actionId,
       newTxMetaProps,
     );
     const state = await this.getState();
