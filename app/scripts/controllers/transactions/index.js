@@ -1318,10 +1318,7 @@ export default class TransactionController extends EventEmitter {
     // So that we do not increment nonce + resubmit something
     // that is already being incremented & signed.
     const txMeta = this.txStateManager.getTransaction(txId);
-    if (
-      this.inProcessOfSigning.has(txId) ||
-      txMeta.status === TRANSACTION_STATUSES.SUBMITTED
-    ) {
+    if (this.inProcessOfSigning.has(txId)) {
       return;
     }
     this.inProcessOfSigning.add(txId);
