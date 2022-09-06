@@ -673,28 +673,69 @@ export default class TransactionController extends EventEmitter {
    * state is unapproved. Returns the updated transaction.
    *
    * @param {string} txId - transaction id
+   * @param {number} currentSendFlowHistoryLength - sendFlowHistory entries currently
    * @param {Array<{ entry: string, timestamp: number }>} sendFlowHistory -
    *  history to add to the sendFlowHistory property of txMeta.
    * @returns {TransactionMeta} the txMeta of the updated transaction
    */
-  updateTransactionSendFlowHistory(txId, sendFlowHistory) {
+  updateTransactionSendFlowHistory(
+    txId,
+    currentSendFlowHistoryLength,
+    sendFlowHistory,
+  ) {
     this._throwErrorIfNotUnapprovedTx(txId, 'updateTransactionSendFlowHistory');
     const txMeta = this._getTransaction(txId);
 
-    // only update what is defined
-    const note = `Update sendFlowHistory for ${txId}`;
+    if (
+      currentSendFlowHistoryLength === (txMeta?.sendFlowHistory?.length || 0)
+    ) {
+      // only update what is defined
+      const note = `Update sendFlowHistory for ${txId}`;
 
-    this.txStateManager.updateTransaction(
-      {
-        ...txMeta,
-        sendFlowHistory: [
-          ...(txMeta?.sendFlowHistory ?? []),
-          ...sendFlowHistory,
-        ],
-      },
-      note,
-    );
+      this.txStateManager.updateTransaction(
+        {
+          ...txMeta,
+          sendFlowHistory: [
+            ...(txMeta?.sendFlowHistory ?? []),
+            ...sendFlowHistory,
+          ],
+        },
+        note,
+      );
+    }
     return this._getTransaction(txId);
+  }
+
+  async addTransactionGasDefaults(txMeta) {
+    const contractCode = await determineTransactionContractCode(
+      txMeta.txParams,
+      this.query,
+    );
+
+    let updateTxMeta = txMeta;
+    try {
+      updateTxMeta = await this.addTxGasDefaults(txMeta, contractCode);
+    } catch (error) {
+      log.warn(error);
+      updateTxMeta = this.txStateManager.getTransaction(txMeta.id);
+      updateTxMeta.loadingDefaults = false;
+      this.txStateManager.updateTransaction(
+        txMeta,
+        'Failed to calculate gas defaults.',
+      );
+      throw error;
+    }
+
+    updateTxMeta.loadingDefaults = false;
+
+    // The history note used here 'Added new unapproved transaction.' is confusing update call only updated the gas defaults.
+    // We need to improve `this.addTransaction` to accept history note and change note here.
+    this.txStateManager.updateTransaction(
+      updateTxMeta,
+      'Added new unapproved transaction.',
+    );
+
+    return updateTxMeta;
   }
 
   async addTransactionGasDefaults(txMeta) {
@@ -769,7 +810,7 @@ export default class TransactionController extends EventEmitter {
         this.txStateManager.getTransactionWithActionId(actionId);
       if (existingTxMeta) {
         this.emit('newUnapprovedTx', existingTxMeta);
-        existingTxMeta = this.addTransactionGasDefaults(existingTxMeta);
+        existingTxMeta = await this.addTransactionGasDefaults(existingTxMeta);
         return existingTxMeta;
       }
     }
@@ -793,6 +834,7 @@ export default class TransactionController extends EventEmitter {
     });
 
     // Add actionId to txMeta to check if same actionId is seen again
+    // IF request to create transaction with same actionId is submitted again, new transaction will not be added for it.
     if (actionId) {
       txMeta.actionId = actionId;
     }
@@ -829,7 +871,7 @@ export default class TransactionController extends EventEmitter {
     this.addTransaction(txMeta);
     this.emit('newUnapprovedTx', txMeta);
 
-    txMeta = this.addTransactionGasDefaults(txMeta);
+    txMeta = await this.addTransactionGasDefaults(txMeta);
 
     return txMeta;
   }
