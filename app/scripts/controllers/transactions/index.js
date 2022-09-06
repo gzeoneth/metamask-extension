@@ -1170,7 +1170,7 @@ export default class TransactionController extends EventEmitter {
     { estimatedBaseFee } = {},
     actionId,
   ) {
-    // In transaction is found for same action id, do not create a new cancel transaction.
+    // If transaction is found for same action id, do not create a new cancel transaction.
     if (actionId) {
       const existingTxMeta =
         this.txStateManager.getTransactionWithActionId(actionId);
@@ -1238,7 +1238,7 @@ export default class TransactionController extends EventEmitter {
     { estimatedBaseFee } = {},
     actionId,
   ) {
-    // In transaction is found for same action id, do not create a new cancel transaction.
+    // If transaction is found for same action id, do not create a new cancel transaction.
     if (actionId) {
       const existingTxMeta =
         this.txStateManager.getTransactionWithActionId(actionId);
