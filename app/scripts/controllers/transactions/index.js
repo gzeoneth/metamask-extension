@@ -673,27 +673,36 @@ export default class TransactionController extends EventEmitter {
    * state is unapproved. Returns the updated transaction.
    *
    * @param {string} txId - transaction id
+   * @param {number} currentSendFlowHistoryLength - sendFlowHistory entries currently
    * @param {Array<{ entry: string, timestamp: number }>} sendFlowHistory -
    *  history to add to the sendFlowHistory property of txMeta.
    * @returns {TransactionMeta} the txMeta of the updated transaction
    */
-  updateTransactionSendFlowHistory(txId, sendFlowHistory) {
+  updateTransactionSendFlowHistory(
+    txId,
+    currentSendFlowHistoryLength,
+    sendFlowHistory,
+  ) {
     this._throwErrorIfNotUnapprovedTx(txId, 'updateTransactionSendFlowHistory');
     const txMeta = this._getTransaction(txId);
 
-    // only update what is defined
-    const note = `Update sendFlowHistory for ${txId}`;
+    if (
+      currentSendFlowHistoryLength === (txMeta?.sendFlowHistory?.length || 0)
+    ) {
+      // only update what is defined
+      const note = `Update sendFlowHistory for ${txId}`;
 
-    this.txStateManager.updateTransaction(
-      {
-        ...txMeta,
-        sendFlowHistory: [
-          ...(txMeta?.sendFlowHistory ?? []),
-          ...sendFlowHistory,
-        ],
-      },
-      note,
-    );
+      this.txStateManager.updateTransaction(
+        {
+          ...txMeta,
+          sendFlowHistory: [
+            ...(txMeta?.sendFlowHistory ?? []),
+            ...sendFlowHistory,
+          ],
+        },
+        note,
+      );
+    }
     return this._getTransaction(txId);
   }
 
@@ -769,7 +778,7 @@ export default class TransactionController extends EventEmitter {
         this.txStateManager.getTransactionWithActionId(actionId);
       if (existingTxMeta) {
         this.emit('newUnapprovedTx', existingTxMeta);
-        existingTxMeta = this.addTransactionGasDefaults(existingTxMeta);
+        existingTxMeta = await this.addTransactionGasDefaults(existingTxMeta);
         return existingTxMeta;
       }
     }
@@ -793,6 +802,7 @@ export default class TransactionController extends EventEmitter {
     });
 
     // Add actionId to txMeta to check if same actionId is seen again
+    // IF request to create transaction with same actionId is submitted again, new transaction will not be added for it.
     if (actionId) {
       txMeta.actionId = actionId;
     }
@@ -829,7 +839,7 @@ export default class TransactionController extends EventEmitter {
     this.addTransaction(txMeta);
     this.emit('newUnapprovedTx', txMeta);
 
-    txMeta = this.addTransactionGasDefaults(txMeta);
+    txMeta = await this.addTransactionGasDefaults(txMeta);
 
     return txMeta;
   }
@@ -1307,7 +1317,11 @@ export default class TransactionController extends EventEmitter {
     // we need to keep track of what is currently being signed,
     // So that we do not increment nonce + resubmit something
     // that is already being incremented & signed.
-    if (this.inProcessOfSigning.has(txId)) {
+    const txMeta = this.txStateManager.getTransaction(txId);
+    if (
+      this.inProcessOfSigning.has(txId) ||
+      txMeta.status === TRANSACTION_STATUSES.SUBMITTED
+    ) {
       return;
     }
     this.inProcessOfSigning.add(txId);
@@ -1316,8 +1330,6 @@ export default class TransactionController extends EventEmitter {
       // approve
       this.txStateManager.setTxStatusApproved(txId);
       // get next nonce
-      const txMeta = this.txStateManager.getTransaction(txId);
-
       const fromAddress = txMeta.txParams.from;
       // wait for a nonce
       let { customNonceValue } = txMeta;
