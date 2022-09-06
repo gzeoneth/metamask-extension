@@ -1337,7 +1337,11 @@ export default class TransactionController extends EventEmitter {
     // we need to keep track of what is currently being signed,
     // So that we do not increment nonce + resubmit something
     // that is already being incremented & signed.
-    if (this.inProcessOfSigning.has(txId)) {
+    const txMeta = this.txStateManager.getTransaction(txId);
+    if (
+      this.inProcessOfSigning.has(txId) ||
+      txMeta.status === TRANSACTION_STATUSES.SUBMITTED
+    ) {
       return;
     }
     this.inProcessOfSigning.add(txId);
@@ -1346,8 +1350,6 @@ export default class TransactionController extends EventEmitter {
       // approve
       this.txStateManager.setTxStatusApproved(txId);
       // get next nonce
-      const txMeta = this.txStateManager.getTransaction(txId);
-
       const fromAddress = txMeta.txParams.from;
       // wait for a nonce
       let { customNonceValue } = txMeta;
